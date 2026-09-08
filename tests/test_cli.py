@@ -23,7 +23,7 @@ def _write_vault(tmp_path, tensions=(), notes=()):
 class TestScanCommand:
     def test_reports_no_tensions_found(self, tmp_path):
         vault = _write_vault(tmp_path)
-        result = runner.invoke(app, ["--vault-path", str(vault)])
+        result = runner.invoke(app, ["tensions", "--vault-path", str(vault)])
         assert result.exit_code == 0
         assert "No unresolved tensions found" in result.output
 
@@ -36,7 +36,7 @@ class TestScanCommand:
                 ("t3", "pending", ["unrelated"]),
             ],
         )
-        result = runner.invoke(app, ["--vault-path", str(vault)])
+        result = runner.invoke(app, ["tensions", "--vault-path", str(vault)])
         assert result.exit_code == 0
         assert "3 unresolved tensions, 1 cluster(s)" in result.output
         assert "CLUSTER" in result.output
@@ -50,6 +50,6 @@ class TestScanCommand:
             tmp_path,
             tensions=[("t1", "resolved", ["a", "b"])],
         )
-        result = runner.invoke(app, ["--vault-path", str(vault)])
+        result = runner.invoke(app, ["tensions", "--vault-path", str(vault)])
         assert result.exit_code == 0
         assert "No unresolved tensions found" in result.output

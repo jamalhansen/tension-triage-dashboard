@@ -3,16 +3,30 @@ from pathlib import Path
 import typer
 
 from .clustering import cluster_tensions, scan_note_domains, scan_tensions
+from .map_health import (
+    SMALL_SECTION_THRESHOLD,
+    append_snapshot,
+    build_areas_index,
+    compute_provenance,
+    compute_reciprocity,
+    find_map_files,
+    previous_snapshot,
+    snapshot_row,
+)
 
 app = typer.Typer(
     name="tension-triage-dashboard",
-    help="Read-only grouped view of pending vault tensions, for /rethink prep.",
+    help="Read-only vault-health dashboards: tension clustering and map fragmentation/reciprocity.",
     add_completion=False,
 )
 
 
+def _warn_skip(path: Path, error: Exception) -> None:
+    typer.echo(f"  [skipped] {path.name}: {error}", err=True)
+
+
 @app.command()
-def scan(
+def tensions(
     vault_path: Path = typer.Option(
         Path.home() / "vaults" / "Contexta",
         "--vault-path",
@@ -23,20 +37,17 @@ def scan(
     tensions_dir = vault_path / "ops" / "tensions"
     notes_dir = vault_path / "notes"
 
-    def _warn_skip(path: Path, error: Exception) -> None:
-        typer.echo(f"  [skipped] {path.name}: {error}", err=True)
-
-    tensions = scan_tensions(tensions_dir, on_error=_warn_skip)
-    if not tensions:
+    tension_list = scan_tensions(tensions_dir, on_error=_warn_skip)
+    if not tension_list:
         typer.echo(f"No unresolved tensions found under {tensions_dir}")
         return
 
-    all_slugs = {n for t in tensions for n in t.notes}
+    all_slugs = {n for t in tension_list for n in t.notes}
     note_domains = scan_note_domains(notes_dir, all_slugs)
 
-    clusters, standalones = cluster_tensions(tensions, note_domains)
+    clusters, standalones = cluster_tensions(tension_list, note_domains)
 
-    typer.echo(f"{len(tensions)} unresolved tensions, {len(clusters)} cluster(s)\n")
+    typer.echo(f"{len(tension_list)} unresolved tensions, {len(clusters)} cluster(s)\n")
 
     for cluster in clusters:
         typer.echo(f"CLUSTER: {cluster.key} ({len(cluster.tensions)} tensions)")
@@ -49,6 +60,79 @@ def scan(
         typer.echo(f"STANDALONE ({len(standalones)} tension{'s' if len(standalones) != 1 else ''})")
         for t in standalones:
             typer.echo(f"  - {t.path.name}")
+
+
+@app.command()
+def maps(
+    vault_path: Path = typer.Option(
+        Path.home() / "vaults" / "Contexta",
+        "--vault-path",
+        help="Path to the vault root (expects notes/*-map.md under it).",
+    ),
+    fragmenting_ratio: float = typer.Option(
+        0.2,
+        "--fragmenting-ratio",
+        help="Flag a map as fragmenting if its provenance-named-section ratio is at or above this.",
+    ),
+    no_snapshot: bool = typer.Option(
+        False,
+        "--no-snapshot",
+        help="Report only -- don't record this run in ops/health/map-metrics.db.",
+    ),
+):
+    """Provenance ratio (theme sections vs. ingestion-batch sections) and
+    claim/list reciprocity per map, with a trend against the last recorded run."""
+    notes_dir = vault_path / "notes"
+    db_path = vault_path / "ops" / "health" / "map-metrics.db"
+
+    map_files = find_map_files(notes_dir)
+    if not map_files:
+        typer.echo(f"No *-map.md files found under {notes_dir}")
+        return
+
+    areas_index = build_areas_index(notes_dir, on_error=_warn_skip)
+    today = None
+
+    for map_path in map_files:
+        provenance = compute_provenance(map_path)
+        reciprocity = compute_reciprocity(map_path, areas_index)
+        row = snapshot_row(provenance, reciprocity)
+        today = row["date"]
+
+        flag = " [FRAGMENTING]" if provenance.ratio >= fragmenting_ratio else ""
+        typer.echo(f"{provenance.map_name}{flag}")
+        typer.echo(
+            f"  sections: {provenance.total_sections} total, "
+            f"{len(provenance.provenance_sections)} provenance-named, "
+            f"{len(provenance.fragmenting_sections)} fragmenting "
+            f"(provenance-named AND ≤{SMALL_SECTION_THRESHOLD} links) "
+            f"({provenance.ratio:.0%})"
+        )
+        typer.echo(f"  reciprocity: {reciprocity.claiming} claim, {reciprocity.listed} listed, {reciprocity.gap} gap")
+
+        prev = previous_snapshot(db_path, provenance.map_name, today)
+        if prev:
+            d_sections = row["total_sections"] - prev["total_sections"]
+            d_gap = row["gap"] - prev["gap"]
+            typer.echo(
+                f"  trend since {prev['date']}: sections {d_sections:+d}, gap {d_gap:+d}"
+            )
+        else:
+            typer.echo("  trend: no prior snapshot to compare against")
+
+        if provenance.provenance_sections:
+            typer.echo("  provenance-named sections (* = counted as fragmenting):")
+            for s in sorted(provenance.provenance_sections, key=lambda s: s.link_count):
+                marker = "*" if s in provenance.fragmenting_sections else " "
+                typer.echo(f"   {marker}\"{s.heading}\" ({s.link_count} links)")
+
+        typer.echo("")
+
+        if not no_snapshot:
+            append_snapshot(db_path, row)
+
+    if not no_snapshot:
+        typer.echo(f"Recorded {len(map_files)} snapshot(s) to {db_path}")
 
 
 if __name__ == "__main__":
