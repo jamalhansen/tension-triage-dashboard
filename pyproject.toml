@@ -1,13 +1,14 @@
 [project]
 name = "tension-triage-dashboard"
 version = "0.1.0"
-description = "Read-only grouped view of pending vault tensions before running /rethink."
+description = "Read-only vault-health dashboards: tension clustering, map fragmentation/reciprocity."
 readme = "README.md"
 authors = [
     { name = "Jamal Hansen", email = "jamal.hansen@gmail.com" }
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "local-first-common",
     "python-frontmatter>=1.1.0",
     "typer>=0.24.1",
     "rich>=14.3.3",
@@ -15,6 +16,9 @@ dependencies = [
 
 [project.scripts]
 tension-dashboard = "tension_triage_dashboard.cli:app"
+
+[tool.uv.sources]
+local-first-common = { git = "https://github.com/jamalhansen/local-first-common.git", branch = "main" }
 
 [build-system]
 requires = ["hatchling"]

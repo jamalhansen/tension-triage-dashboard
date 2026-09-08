@@ -1,7 +1,21 @@
-from tension_triage_dashboard.cli import app
+from tension_triage_dashboard.cli import _default_db_path, _default_vault_path, app
 from typer.testing import CliRunner
 
 runner = CliRunner()
+
+
+class TestConfigurableDefaults:
+    def test_vault_path_defaults_to_contexta_when_unset(self, monkeypatch):
+        monkeypatch.delenv("TENSION_DASHBOARD_VAULT_PATH", raising=False)
+        assert _default_vault_path().endswith("vaults/Contexta")
+
+    def test_vault_path_env_var_overrides_default(self, monkeypatch):
+        monkeypatch.setenv("TENSION_DASHBOARD_VAULT_PATH", "/some/other/vault")
+        assert _default_vault_path() == "/some/other/vault"
+
+    def test_db_path_env_var_overrides_default(self, monkeypatch):
+        monkeypatch.setenv("TENSION_DASHBOARD_DB_PATH", "/some/other/db.sqlite")
+        assert _default_db_path() == "/some/other/db.sqlite"
 
 
 def _write_vault_with_map(tmp_path, map_content, note_areas=()):
@@ -46,24 +60,38 @@ class TestMapsCommand:
 
     def test_no_snapshot_flag_does_not_write_db(self, tmp_path):
         vault = _write_vault_with_map(tmp_path, "## Theme\n- [[n1]]\n")
-        runner.invoke(app, ["maps", "--vault-path", str(vault), "--no-snapshot"])
-        assert not (vault / "ops" / "health" / "map-metrics.db").exists()
+        db_path = tmp_path / "db" / "map-metrics.db"
+        runner.invoke(app, ["maps", "--vault-path", str(vault), "--db-path", str(db_path), "--no-snapshot"])
+        assert not db_path.exists()
 
     def test_snapshot_recorded_by_default(self, tmp_path):
         vault = _write_vault_with_map(tmp_path, "## Theme\n- [[n1]]\n")
-        result = runner.invoke(app, ["maps", "--vault-path", str(vault)])
-        assert (vault / "ops" / "health" / "map-metrics.db").exists()
+        db_path = tmp_path / "db" / "map-metrics.db"
+        result = runner.invoke(app, ["maps", "--vault-path", str(vault), "--db-path", str(db_path)])
+        assert db_path.exists()
         assert "Recorded 1 snapshot" in result.output
 
     def test_second_run_shows_trend(self, tmp_path):
         vault = _write_vault_with_map(tmp_path, "## Theme\n- [[n1]]\n")
         from tension_triage_dashboard.map_health import append_snapshot
 
-        db_path = vault / "ops" / "health" / "map-metrics.db"
+        db_path = tmp_path / "db" / "map-metrics.db"
         append_snapshot(db_path, {
             "date": "2026-09-01", "map": "some-map", "total_sections": 1,
             "provenance_sections": 0, "fragmenting_sections": 0, "fragmentation_ratio": 0.0,
             "claiming": 5, "listed": 1, "gap": 4,
         })
-        result = runner.invoke(app, ["maps", "--vault-path", str(vault), "--no-snapshot"])
+        result = runner.invoke(
+            app, ["maps", "--vault-path", str(vault), "--db-path", str(db_path), "--no-snapshot"]
+        )
         assert "trend since 2026-09-01" in result.output
+
+    def test_default_db_path_is_outside_the_vault(self, tmp_path):
+        """The default --db-path should live in ~/sync/, not inside the
+        vault, so snapshot history syncs across machines via Syncthing
+        instead of sitting only on whichever machine ran the check."""
+        from tension_triage_dashboard.cli import _default_db_path
+
+        default = _default_db_path()
+        assert "sync" in default
+        assert "vaults" not in default

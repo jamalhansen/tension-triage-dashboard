@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import typer
+from local_first_common.config import get_setting
 
 from .clustering import cluster_tensions, scan_note_domains, scan_tensions
 from .map_health import (
@@ -14,8 +15,10 @@ from .map_health import (
     snapshot_row,
 )
 
+TOOL_NAME = "tension-triage-dashboard"
+
 app = typer.Typer(
-    name="tension-triage-dashboard",
+    name=TOOL_NAME,
     help="Read-only vault-health dashboards: tension clustering and map fragmentation/reciprocity.",
     add_completion=False,
 )
@@ -25,12 +28,36 @@ def _warn_skip(path: Path, error: Exception) -> None:
     typer.echo(f"  [skipped] {path.name}: {error}", err=True)
 
 
+def _default_vault_path() -> str:
+    """Precedence: env var > ~/.config/local-first/tension-triage-dashboard.toml
+    ('vault_path' key) > Contexta, matching every other tool in this ecosystem
+    (see local_first_common.config.get_setting). Not hardcoded so this tool
+    can be pointed at a different vault without a flag every time -- though
+    see the README caveat: it only finds anything on a vault that adopts the
+    same ops/tensions/ + notes/Areas: conventions Contexta uses."""
+    return get_setting(
+        TOOL_NAME, "vault_path",
+        env_var="TENSION_DASHBOARD_VAULT_PATH",
+        default=str(Path.home() / "vaults" / "Contexta"),
+    )
+
+
+def _default_db_path() -> str:
+    return get_setting(
+        TOOL_NAME, "db_path",
+        env_var="TENSION_DASHBOARD_DB_PATH",
+        default=str(Path.home() / "sync" / "tension-triage-dashboard" / "map-metrics.db"),
+    )
+
+
 @app.command()
 def tensions(
     vault_path: Path = typer.Option(
-        Path.home() / "vaults" / "Contexta",
+        _default_vault_path(),
         "--vault-path",
-        help="Path to the vault root (expects ops/tensions/ and notes/ under it).",
+        help="Path to the vault root (expects ops/tensions/ and notes/ under it). "
+        "Configurable via TENSION_DASHBOARD_VAULT_PATH or "
+        "~/.config/local-first/tension-triage-dashboard.toml's vault_path key.",
     ),
 ):
     """Group unresolved tensions by shared note reference, falling back to domain."""
@@ -65,9 +92,11 @@ def tensions(
 @app.command()
 def maps(
     vault_path: Path = typer.Option(
-        Path.home() / "vaults" / "Contexta",
+        _default_vault_path(),
         "--vault-path",
-        help="Path to the vault root (expects notes/*-map.md under it).",
+        help="Path to the vault root (expects notes/*-map.md under it). "
+        "Configurable via TENSION_DASHBOARD_VAULT_PATH or "
+        "~/.config/local-first/tension-triage-dashboard.toml's vault_path key.",
     ),
     fragmenting_ratio: float = typer.Option(
         0.2,
@@ -77,13 +106,21 @@ def maps(
     no_snapshot: bool = typer.Option(
         False,
         "--no-snapshot",
-        help="Report only -- don't record this run in ops/health/map-metrics.db.",
+        help="Report only -- don't record this run.",
+    ),
+    db_path: Path = typer.Option(
+        _default_db_path(),
+        "--db-path",
+        help="Where to record snapshots. Deliberately outside the vault, in "
+        "~/sync/ (Syncthing), matching content-discovery-agent/vault-log/etc's "
+        "convention -- so trend history follows you across machines instead of "
+        "sitting only on whichever one happened to run the check. Configurable "
+        "via TENSION_DASHBOARD_DB_PATH or the same TOML config's db_path key.",
     ),
 ):
     """Provenance ratio (theme sections vs. ingestion-batch sections) and
     claim/list reciprocity per map, with a trend against the last recorded run."""
     notes_dir = vault_path / "notes"
-    db_path = vault_path / "ops" / "health" / "map-metrics.db"
 
     map_files = find_map_files(notes_dir)
     if not map_files:
