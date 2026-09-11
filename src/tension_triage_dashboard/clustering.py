@@ -4,6 +4,7 @@ Read-only by design -- this only groups an existing pending-tensions list into
 clusters so a /rethink pass can tackle related tensions together instead of
 hitting each one cold. It never writes, resolves, or dissolves anything.
 """
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -81,7 +82,8 @@ def scan_note_domains(notes_dir: Path, slugs: set[str]) -> dict[str, str]:
             continue
         try:
             post = frontmatter.load(note_path)
-        except Exception:  # noqa: BLE001
+        except Exception as e:  # noqa: BLE001 - a hand-edited note can fail to parse in many ways; skip it, don't crash domain lookup
+            print(f"  [skipped] {note_path.name}: {e}", file=sys.stderr)
             continue
         domain = post.get("domain")
         if domain:

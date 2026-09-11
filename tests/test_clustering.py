@@ -1,7 +1,5 @@
 from pathlib import Path
 
-import pytest
-
 from tension_triage_dashboard.clustering import (
     Tension,
     cluster_tensions,
@@ -93,7 +91,7 @@ class TestClusterTensions:
         t1 = Tension(path=Path("t1.md"), title="t1", status="active", notes=["a", "b"])
         t2 = Tension(path=Path("t2.md"), title="t2", status="active", notes=["b", "c"])
         t3 = Tension(path=Path("t3.md"), title="t3", status="active", notes=["c", "d"])
-        clusters, standalones = cluster_tensions([t1, t2, t3])
+        clusters, _standalones = cluster_tensions([t1, t2, t3])
         assert len(clusters) == 1
         assert len(clusters[0].tensions) == 3
 

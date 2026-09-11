@@ -24,7 +24,7 @@ gap is growing fastest) matter more than raw volume ever will here.
 import re
 import sqlite3
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 PROVENANCE_RE = re.compile(r"\((?:[^)]*?(\d{4}-\d{2}-\d{2})[^)]*?|[^)]*?\b(19|20)\d{2}\b[^)]*?)\)")
@@ -195,7 +195,7 @@ CREATE TABLE IF NOT EXISTS map_snapshots (
 
 def snapshot_row(provenance: ProvenanceReport, reciprocity: ReciprocityReport) -> dict:
     return {
-        "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        "date": datetime.now(UTC).strftime("%Y-%m-%d"),
         "map": provenance.map_name,
         "total_sections": provenance.total_sections,
         "provenance_sections": len(provenance.provenance_sections),

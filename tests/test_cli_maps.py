@@ -1,5 +1,6 @@
-from tension_triage_dashboard.cli import _default_db_path, _default_vault_path, app
 from typer.testing import CliRunner
+
+from tension_triage_dashboard.cli import _default_db_path, _default_vault_path, app
 
 runner = CliRunner()
 

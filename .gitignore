@@ -5,3 +5,16 @@ __pycache__/
 .coverage
 .ruff_cache/
 .DS_Store
+
+# Workspace standard ignores
+*.pyd
+*.pyo
+.env
+.envrc
+CLAUDE.md
+_NOTES.md
+__pycache__
+uv.toml
+
+# Workspace standard ignores
+.venv

@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Annotated
 
 import typer
 from local_first_common.config import get_setting
@@ -50,15 +51,21 @@ def _default_db_path() -> str:
     )
 
 
+_DEFAULT_VAULT_PATH = _default_vault_path()
+_DEFAULT_DB_PATH = _default_db_path()
+
+
 @app.command()
 def tensions(
-    vault_path: Path = typer.Option(
-        _default_vault_path(),
-        "--vault-path",
-        help="Path to the vault root (expects ops/tensions/ and notes/ under it). "
-        "Configurable via TENSION_DASHBOARD_VAULT_PATH or "
-        "~/.config/local-first/tension-triage-dashboard.toml's vault_path key.",
-    ),
+    vault_path: Annotated[
+        Path,
+        typer.Option(
+            "--vault-path",
+            help="Path to the vault root (expects ops/tensions/ and notes/ under it). "
+            "Configurable via TENSION_DASHBOARD_VAULT_PATH or "
+            "~/.config/local-first/tension-triage-dashboard.toml's vault_path key.",
+        ),
+    ] = _DEFAULT_VAULT_PATH,
 ):
     """Group unresolved tensions by shared note reference, falling back to domain."""
     tensions_dir = vault_path / "ops" / "tensions"
@@ -91,32 +98,40 @@ def tensions(
 
 @app.command()
 def maps(
-    vault_path: Path = typer.Option(
-        _default_vault_path(),
-        "--vault-path",
-        help="Path to the vault root (expects notes/*-map.md under it). "
-        "Configurable via TENSION_DASHBOARD_VAULT_PATH or "
-        "~/.config/local-first/tension-triage-dashboard.toml's vault_path key.",
-    ),
-    fragmenting_ratio: float = typer.Option(
-        0.2,
-        "--fragmenting-ratio",
-        help="Flag a map as fragmenting if its provenance-named-section ratio is at or above this.",
-    ),
-    no_snapshot: bool = typer.Option(
-        False,
-        "--no-snapshot",
-        help="Report only -- don't record this run.",
-    ),
-    db_path: Path = typer.Option(
-        _default_db_path(),
-        "--db-path",
-        help="Where to record snapshots. Deliberately outside the vault, in "
-        "~/sync/ (Syncthing), matching content-discovery-agent/vault-log/etc's "
-        "convention -- so trend history follows you across machines instead of "
-        "sitting only on whichever one happened to run the check. Configurable "
-        "via TENSION_DASHBOARD_DB_PATH or the same TOML config's db_path key.",
-    ),
+    vault_path: Annotated[
+        Path,
+        typer.Option(
+            "--vault-path",
+            help="Path to the vault root (expects notes/*-map.md under it). "
+            "Configurable via TENSION_DASHBOARD_VAULT_PATH or "
+            "~/.config/local-first/tension-triage-dashboard.toml's vault_path key.",
+        ),
+    ] = _DEFAULT_VAULT_PATH,
+    fragmenting_ratio: Annotated[
+        float,
+        typer.Option(
+            "--fragmenting-ratio",
+            help="Flag a map as fragmenting if its provenance-named-section ratio is at or above this.",
+        ),
+    ] = 0.2,
+    no_snapshot: Annotated[
+        bool,
+        typer.Option(
+            "--no-snapshot",
+            help="Report only -- don't record this run.",
+        ),
+    ] = False,
+    db_path: Annotated[
+        Path,
+        typer.Option(
+            "--db-path",
+            help="Where to record snapshots. Deliberately outside the vault, in "
+            "~/sync/ (Syncthing), matching content-discovery-agent/vault-log/etc's "
+            "convention -- so trend history follows you across machines instead of "
+            "sitting only on whichever one happened to run the check. Configurable "
+            "via TENSION_DASHBOARD_DB_PATH or the same TOML config's db_path key.",
+        ),
+    ] = _DEFAULT_DB_PATH,
 ):
     """Provenance ratio (theme sections vs. ingestion-batch sections) and
     claim/list reciprocity per map, with a trend against the last recorded run."""
