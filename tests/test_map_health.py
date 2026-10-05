@@ -48,10 +48,7 @@ class TestFindMapFiles:
 class TestParseSections:
     def test_splits_on_h2_headings(self, tmp_path):
         p = tmp_path / "m.md"
-        p.write_text(
-            "# Title\n\n## Section A\n- [[note-1]]\n- [[note-2]]\n\n"
-            "## Section B\n- [[note-3]]\n"
-        )
+        p.write_text("# Title\n\n## Section A\n- [[note-1]]\n- [[note-2]]\n\n## Section B\n- [[note-3]]\n")
         sections = parse_sections(p)
         assert [s.heading for s in sections] == ["Section A", "Section B"]
         assert sections[0].link_count == 2
@@ -112,9 +109,7 @@ class TestBuildAreasIndex:
     def test_stops_at_first_non_bullet_line_after_areas(self, tmp_path):
         d = tmp_path / "notes"
         d.mkdir()
-        (d / "n1.md").write_text(
-            "Areas:\n- [[map-a]]\nSome trailing prose that is not a bullet\n- [[map-b]]\n"
-        )
+        (d / "n1.md").write_text("Areas:\n- [[map-a]]\nSome trailing prose that is not a bullet\n- [[map-b]]\n")
         index = build_areas_index(d)
         assert index["n1"] == {"map-a"}
 
@@ -170,9 +165,15 @@ class TestSnapshotPersistence:
     def test_append_and_load(self, tmp_path):
         db_path = tmp_path / "map-metrics.db"
         row = {
-            "date": "2026-09-07", "map": "ai-tools-map", "total_sections": 44,
-            "provenance_sections": 13, "fragmenting_sections": 8, "fragmentation_ratio": 0.182,
-            "claiming": 698, "listed": 260, "gap": 438,
+            "date": "2026-09-07",
+            "map": "ai-tools-map",
+            "total_sections": 44,
+            "provenance_sections": 13,
+            "fragmenting_sections": 8,
+            "fragmentation_ratio": 0.182,
+            "claiming": 698,
+            "listed": 260,
+            "gap": 438,
         }
         append_snapshot(db_path, row)
         loaded = load_snapshots(db_path, map_name="ai-tools-map")
@@ -181,16 +182,34 @@ class TestSnapshotPersistence:
 
     def test_load_filters_by_map(self, tmp_path):
         db_path = tmp_path / "map-metrics.db"
-        append_snapshot(db_path, {
-            "date": "2026-09-07", "map": "map-a", "total_sections": 1,
-            "provenance_sections": 0, "fragmenting_sections": 0, "fragmentation_ratio": 0.0,
-            "claiming": 1, "listed": 1, "gap": 0,
-        })
-        append_snapshot(db_path, {
-            "date": "2026-09-07", "map": "map-b", "total_sections": 2,
-            "provenance_sections": 0, "fragmenting_sections": 0, "fragmentation_ratio": 0.0,
-            "claiming": 1, "listed": 1, "gap": 0,
-        })
+        append_snapshot(
+            db_path,
+            {
+                "date": "2026-09-07",
+                "map": "map-a",
+                "total_sections": 1,
+                "provenance_sections": 0,
+                "fragmenting_sections": 0,
+                "fragmentation_ratio": 0.0,
+                "claiming": 1,
+                "listed": 1,
+                "gap": 0,
+            },
+        )
+        append_snapshot(
+            db_path,
+            {
+                "date": "2026-09-07",
+                "map": "map-b",
+                "total_sections": 2,
+                "provenance_sections": 0,
+                "fragmenting_sections": 0,
+                "fragmentation_ratio": 0.0,
+                "claiming": 1,
+                "listed": 1,
+                "gap": 0,
+            },
+        )
         assert len(load_snapshots(db_path, map_name="map-a")) == 1
         assert len(load_snapshots(db_path)) == 2
 
@@ -199,21 +218,39 @@ class TestSnapshotPersistence:
 
     def test_previous_snapshot_excludes_same_day(self, tmp_path):
         db_path = tmp_path / "map-metrics.db"
-        append_snapshot(db_path, {
-            "date": "2026-09-07", "map": "map-a", "total_sections": 1,
-            "provenance_sections": 0, "fragmenting_sections": 0, "fragmentation_ratio": 0.0,
-            "claiming": 1, "listed": 1, "gap": 0,
-        })
+        append_snapshot(
+            db_path,
+            {
+                "date": "2026-09-07",
+                "map": "map-a",
+                "total_sections": 1,
+                "provenance_sections": 0,
+                "fragmenting_sections": 0,
+                "fragmentation_ratio": 0.0,
+                "claiming": 1,
+                "listed": 1,
+                "gap": 0,
+            },
+        )
         assert previous_snapshot(db_path, "map-a", "2026-09-07") is None
 
     def test_previous_snapshot_finds_most_recent_prior(self, tmp_path):
         db_path = tmp_path / "map-metrics.db"
         for d in ["2026-09-01", "2026-09-05"]:
-            append_snapshot(db_path, {
-                "date": d, "map": "map-a", "total_sections": 1,
-                "provenance_sections": 0, "fragmenting_sections": 0, "fragmentation_ratio": 0.0,
-                "claiming": 1, "listed": 1, "gap": 0,
-            })
+            append_snapshot(
+                db_path,
+                {
+                    "date": d,
+                    "map": "map-a",
+                    "total_sections": 1,
+                    "provenance_sections": 0,
+                    "fragmenting_sections": 0,
+                    "fragmentation_ratio": 0.0,
+                    "claiming": 1,
+                    "listed": 1,
+                    "gap": 0,
+                },
+            )
         prev = previous_snapshot(db_path, "map-a", "2026-09-07")
         assert prev["date"] == "2026-09-05"
 

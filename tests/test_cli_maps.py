@@ -54,9 +54,7 @@ class TestMapsCommand:
             tmp_path,
             "## Batch One (2026-09-01)\n- [[n1]]\n\n## Batch Two (2026-09-02)\n- [[n2]]\n",
         )
-        result = runner.invoke(
-            app, ["maps", "--vault-path", str(vault), "--no-snapshot", "--fragmenting-ratio", "0.5"]
-        )
+        result = runner.invoke(app, ["maps", "--vault-path", str(vault), "--no-snapshot", "--fragmenting-ratio", "0.5"])
         assert "[FRAGMENTING]" in result.output
 
     def test_no_snapshot_flag_does_not_write_db(self, tmp_path):
@@ -77,14 +75,21 @@ class TestMapsCommand:
         from tension_triage_dashboard.map_health import append_snapshot
 
         db_path = tmp_path / "db" / "map-metrics.db"
-        append_snapshot(db_path, {
-            "date": "2026-09-01", "map": "some-map", "total_sections": 1,
-            "provenance_sections": 0, "fragmenting_sections": 0, "fragmentation_ratio": 0.0,
-            "claiming": 5, "listed": 1, "gap": 4,
-        })
-        result = runner.invoke(
-            app, ["maps", "--vault-path", str(vault), "--db-path", str(db_path), "--no-snapshot"]
+        append_snapshot(
+            db_path,
+            {
+                "date": "2026-09-01",
+                "map": "some-map",
+                "total_sections": 1,
+                "provenance_sections": 0,
+                "fragmenting_sections": 0,
+                "fragmentation_ratio": 0.0,
+                "claiming": 5,
+                "listed": 1,
+                "gap": 4,
+            },
         )
+        result = runner.invoke(app, ["maps", "--vault-path", str(vault), "--db-path", str(db_path), "--no-snapshot"])
         assert "trend since 2026-09-01" in result.output
 
     def test_default_db_path_is_outside_the_vault(self, tmp_path):

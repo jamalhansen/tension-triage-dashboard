@@ -21,6 +21,7 @@ of data (content-discovery-agent's store.db): small structured rows
 accumulating over time, where real queries (trend over N runs, which map's
 gap is growing fastest) matter more than raw volume ever will here.
 """
+
 import re
 import sqlite3
 from dataclasses import dataclass, field
@@ -170,10 +171,7 @@ def compute_reciprocity(map_path: Path, areas_index: dict[str, set[str]]) -> Rec
     claiming_slugs = {slug for slug, maps in areas_index.items() if map_name in maps}
 
     map_content = map_path.read_text() if map_path.exists() else ""
-    listed_slugs = {
-        slug for slug in claiming_slugs
-        if f"[[{slug}]]" in map_content or f"[[{slug}|" in map_content
-    }
+    listed_slugs = {slug for slug in claiming_slugs if f"[[{slug}]]" in map_content or f"[[{slug}|" in map_content}
     return ReciprocityReport(map_name=map_name, claiming=len(claiming_slugs), listed=len(listed_slugs))
 
 
@@ -232,9 +230,7 @@ def load_snapshots(db_path: Path, map_name: str | None = None) -> list[dict]:
     with sqlite3.connect(db_path) as conn:
         conn.row_factory = sqlite3.Row
         if map_name:
-            rows = conn.execute(
-                "SELECT * FROM map_snapshots WHERE map = ? ORDER BY date", (map_name,)
-            ).fetchall()
+            rows = conn.execute("SELECT * FROM map_snapshots WHERE map = ? ORDER BY date", (map_name,)).fetchall()
         else:
             rows = conn.execute("SELECT * FROM map_snapshots ORDER BY date").fetchall()
     return [dict(r) for r in rows]

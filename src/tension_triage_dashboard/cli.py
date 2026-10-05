@@ -40,7 +40,8 @@ def _default_vault_path() -> str:
     see the README caveat: it only finds anything on a vault that adopts the
     same ops/tensions/ + notes/Areas: conventions Contexta uses."""
     return get_setting(
-        TOOL_NAME, "vault_path",
+        TOOL_NAME,
+        "vault_path",
         env_var="TENSION_DASHBOARD_VAULT_PATH",
         default=str(Path.home() / "vaults" / "Contexta"),
     )
@@ -48,7 +49,8 @@ def _default_vault_path() -> str:
 
 def _default_db_path() -> str:
     return get_setting(
-        TOOL_NAME, "db_path",
+        TOOL_NAME,
+        "db_path",
         env_var="TENSION_DASHBOARD_DB_PATH",
         default=str(Path.home() / "sync" / "tension-triage-dashboard" / "map-metrics.db"),
     )
@@ -167,15 +169,15 @@ def maps(
                 f"(provenance-named AND ≤{SMALL_SECTION_THRESHOLD} links) "
                 f"({provenance.ratio:.0%})"
             )
-            typer.echo(f"  reciprocity: {reciprocity.claiming} claim, {reciprocity.listed} listed, {reciprocity.gap} gap")
+            typer.echo(
+                f"  reciprocity: {reciprocity.claiming} claim, {reciprocity.listed} listed, {reciprocity.gap} gap"
+            )
 
             prev = previous_snapshot(db_path, provenance.map_name, today)
             if prev:
                 d_sections = row["total_sections"] - prev["total_sections"]
                 d_gap = row["gap"] - prev["gap"]
-                typer.echo(
-                    f"  trend since {prev['date']}: sections {d_sections:+d}, gap {d_gap:+d}"
-                )
+                typer.echo(f"  trend since {prev['date']}: sections {d_sections:+d}, gap {d_gap:+d}")
             else:
                 typer.echo("  trend: no prior snapshot to compare against")
 
@@ -183,7 +185,7 @@ def maps(
                 typer.echo("  provenance-named sections (* = counted as fragmenting):")
                 for s in sorted(provenance.provenance_sections, key=lambda s: s.link_count):
                     marker = "*" if s in provenance.fragmenting_sections else " "
-                    typer.echo(f"   {marker}\"{s.heading}\" ({s.link_count} links)")
+                    typer.echo(f'   {marker}"{s.heading}" ({s.link_count} links)')
 
             typer.echo("")
 

@@ -4,6 +4,7 @@ Read-only by design -- this only groups an existing pending-tensions list into
 clusters so a /rethink pass can tackle related tensions together instead of
 hitting each one cold. It never writes, resolves, or dissolves anything.
 """
+
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
