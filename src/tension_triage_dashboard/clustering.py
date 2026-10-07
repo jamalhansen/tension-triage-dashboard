@@ -58,9 +58,9 @@ def scan_tensions(tensions_dir: Path, on_error=None) -> list[Tension]:
         tensions.append(
             Tension(
                 path=path,
-                title=post.get("title", path.stem),
-                status=status,
-                notes=list(notes),
+                title=str(post.get("title", path.stem)),
+                status=str(status),
+                notes=list(notes) if isinstance(notes, list) else [],
             )
         )
     return tensions
@@ -88,7 +88,7 @@ def scan_note_domains(notes_dir: Path, slugs: set[str]) -> dict[str, str]:
             continue
         domain = post.get("domain")
         if domain:
-            domains[slug] = domain
+            domains[slug] = str(domain)
     return domains
 
 

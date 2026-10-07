@@ -252,7 +252,7 @@ class TestSnapshotPersistence:
                 },
             )
         prev = previous_snapshot(db_path, "map-a", "2026-09-07")
-        assert prev["date"] == "2026-09-05"
+        assert prev is not None and prev["date"] == "2026-09-05"
 
     def test_previous_snapshot_missing_db_returns_none(self, tmp_path):
         assert previous_snapshot(tmp_path / "nope.db", "map-a", "2026-09-07") is None

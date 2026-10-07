@@ -70,7 +70,7 @@ def tensions(
             "Configurable via TENSION_DASHBOARD_VAULT_PATH or "
             "~/.config/local-first/tension-triage-dashboard.toml's vault_path key.",
         ),
-    ] = _DEFAULT_VAULT_PATH,
+    ] = Path(_DEFAULT_VAULT_PATH),
 ):
     """Group unresolved tensions by shared note reference, falling back to domain."""
     with timed_run("tension-triage-dashboard", None, source_location=str(vault_path)) as run:
@@ -113,7 +113,7 @@ def maps(
             "Configurable via TENSION_DASHBOARD_VAULT_PATH or "
             "~/.config/local-first/tension-triage-dashboard.toml's vault_path key.",
         ),
-    ] = _DEFAULT_VAULT_PATH,
+    ] = Path(_DEFAULT_VAULT_PATH),
     fragmenting_ratio: Annotated[
         float,
         typer.Option(
@@ -138,7 +138,7 @@ def maps(
             "sitting only on whichever one happened to run the check. Configurable "
             "via TENSION_DASHBOARD_DB_PATH or the same TOML config's db_path key.",
         ),
-    ] = _DEFAULT_DB_PATH,
+    ] = Path(_DEFAULT_DB_PATH),
 ):
     """Provenance ratio (theme sections vs. ingestion-batch sections) and
     claim/list reciprocity per map, with a trend against the last recorded run."""
